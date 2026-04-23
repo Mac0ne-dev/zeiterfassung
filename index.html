@@ -7,54 +7,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Zeiterfassung">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='115' fill='%230f0f0f'/%3E%3Ccircle cx='256' cy='256' r='160' fill='none' stroke='%23c8f060' stroke-width='24'/%3E%3Cline x1='256' y1='256' x2='256' y2='140' stroke='%23c8f060' stroke-width='22' stroke-linecap='round'/%3E%3Cline x1='256' y1='256' x2='322' y2='300' stroke='%23e8e8e0' stroke-width='18' stroke-linecap='round'/%3E%3Ccircle cx='256' cy='256' r='14' fill='%23c8f060'/%3E%3Crect x='220' y='80' width='72' height='28' rx='8' fill='%23c8f060'/%3E%3C/svg%3E">
-<script>
-  // Generate PNG favicon via Canvas for Safari & browsers that don't support SVG favicons
-  (function() {
-    const c = document.createElement('canvas');
-    c.width = c.height = 512;
-    const ctx = c.getContext('2d');
-    const r = 115;
-    // Background rounded rect
-    ctx.fillStyle = '#0f0f0f';
-    ctx.beginPath();
-    ctx.moveTo(r, 0); ctx.lineTo(512-r, 0);
-    ctx.arcTo(512,0,512,r,r); ctx.lineTo(512,512-r);
-    ctx.arcTo(512,512,512-r,512,r); ctx.lineTo(r,512);
-    ctx.arcTo(0,512,0,512-r,r); ctx.lineTo(0,r);
-    ctx.arcTo(0,0,r,0,r); ctx.closePath();
-    ctx.fill();
-    // Clock circle
-    ctx.strokeStyle = '#c8f060'; ctx.lineWidth = 24;
-    ctx.beginPath(); ctx.arc(256,256,160,0,Math.PI*2); ctx.stroke();
-    // Minute hand (12 o'clock)
-    ctx.strokeStyle = '#c8f060'; ctx.lineWidth = 22;
-    ctx.lineCap = 'round';
-    ctx.beginPath(); ctx.moveTo(256,256); ctx.lineTo(256,140); ctx.stroke();
-    // Hour hand
-    ctx.strokeStyle = '#e8e8e0'; ctx.lineWidth = 18;
-    ctx.beginPath(); ctx.moveTo(256,256); ctx.lineTo(322,300); ctx.stroke();
-    // Center dot
-    ctx.fillStyle = '#c8f060';
-    ctx.beginPath(); ctx.arc(256,256,14,0,Math.PI*2); ctx.fill();
-    // Top bar (like a clock crown)
-    ctx.fillStyle = '#c8f060';
-    ctx.beginPath();
-    ctx.roundRect(220, 80, 72, 28, 8);
-    ctx.fill();
-    // Set as PNG favicon
-    const link = document.createElement('link');
-    link.rel = 'shortcut icon';
-    link.type = 'image/png';
-    link.href = c.toDataURL('image/png');
-    document.head.appendChild(link);
-    // Also set apple-touch-icon
-    const apple = document.createElement('link');
-    apple.rel = 'apple-touch-icon';
-    apple.href = c.toDataURL('image/png');
-    document.head.appendChild(apple);
-  })();
-</script>
+<link rel="icon" type="image/png" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAALQAAAC0CAYAAAA9zQYyAAAEIklEQVR42u3dQW7UQBQE0H+DuSLHzTFYZskNiGaBxCIgGLC7u+pZKrFLpuu/dMzE9swccDwej++yPuOAFXqABXCQBWyIBW6YpQq1YUkEbMORGNgGIjGoDUIiUCtfYmArXGJQK1piUCtYYlArVqJQK1ViQCtUYlArUmJQK1CiUCtPYkArTqJQK01iQCtMYlArSqJQK0mAFtkRtIL+LW/fvrwc/V2AWjnXwwX9JtCK2QMw4P8JtVL2RQw30LGI4QY6GjLYn4CGODO1qEEGG2iYoQYaZLCBBhlsoKHtQx0JGtRe2HGg4exGHQUaSqhhljzUMEsS6gF5DQywga65PhnqItCNA4Y6FPSJQ736a0EN9G1DXPW1gYb5kuGt/h6NqAfm6wa2y/dqQj0wr3m3QleFoE8fzo7fNx31wJwHuhl1Jegd1qDHItApQzjhdaShHpjzQTehrgG921p0WwA6rfDTXlMC6njQu65Hz+GgE0s+9bWdjHpg7gSd2nsk6BN+66T+ZqwHnXw+1wh69drGDtENOm0GUaBPek89+f3/WtDpf4ZtBb1yfWNXADppHqM8oJPmAjTQQO9U3Kl33DTcKVQDuuX+tnbQK9Y5dgCgk2YENNBAO90Aetc5jZ98oJNmBTTQQK8uKeF5fE3PFIwF3fYkTKDvXy/QQAMNNNBAl50/p4A+bW5AAw000EDXg278RCag718z0EADDTTQQAMNNNDZCPzHEGiggQYaaKCBvmmt7+9fgQY6A8AT848ADXQU6N1hAw30S6B3RQ2096FfwrwjbO9DA/3p+p///gnk3VADDfRv87eoV8MGGuhLYAPtemiwXQ+tGKchQAMdvFsD7Tw6Zrd21zfQUbs10EBH7dZAO49eDtuz7ezSUHv6KNC7wm6elSf4B6JunpPPWAmCbUZAC9BOO2AG2i5tdwYaanMBWoBWnqTMIwY01GaxHLRd2u4MNNRm0AQa6u7+xw4BdFL3Y5eAGWjlwrxp36NkmJN6jgcNdVfHo3CYk7qtAd2OuqXXUT7MSX2OIcCc1GMl6AbYrf2NocCc1NsYTg5sXR0A2qB0FAf6zoE1fmRxUi9jeGcOUBdAHz/Q9vXHgV491FWDbVxzDegdBnz1sNPXB/TmQ38Fw+mvH+hi2KflZA/zPKCWGMwJoKGGOQ401P70Hwca6u4LtCJBg917pWE0aKj7LpuNBw12100NNaDB7rjtrA50K+qW2c7PhzuhQY7B3Ag6FXfrDIEOg90+O6DDr+arBw2165OjMAPtxtQ40FCvg66/CzADLUCL7AwaaonCDLXEYQZa4kBDLVGYgZY40FBLFGaoJQ4z1BKHGWiJAw21RGGGWuIwQy1xmKGWOMxgSxxkqCUSM9QShxlsiYMMtkRChloiMcMtcYjBlmk7DB1g6AXWXxwf+g/6kb5xNS0AAAAASUVORK5CYII=">
+<link rel="apple-touch-icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAALQAAAC0CAYAAAA9zQYyAAAEIklEQVR42u3dQW7UQBQE0H+DuSLHzTFYZskNiGaBxCIgGLC7u+pZKrFLpuu/dMzE9swccDwej++yPuOAFXqABXCQBWyIBW6YpQq1YUkEbMORGNgGIjGoDUIiUCtfYmArXGJQK1piUCtYYlArVqJQK1ViQCtUYlArUmJQK1CiUCtPYkArTqJQK01iQCtMYlArSqJQK0mAFtkRtIL+LW/fvrwc/V2AWjnXwwX9JtCK2QMw4P8JtVL2RQw30LGI4QY6GjLYn4CGODO1qEEGG2iYoQYaZLCBBhlsoKHtQx0JGtRe2HGg4exGHQUaSqhhljzUMEsS6gF5DQywga65PhnqItCNA4Y6FPSJQ736a0EN9G1DXPW1gYb5kuGt/h6NqAfm6wa2y/dqQj0wr3m3QleFoE8fzo7fNx31wJwHuhl1Jegd1qDHItApQzjhdaShHpjzQTehrgG921p0WwA6rfDTXlMC6njQu65Hz+GgE0s+9bWdjHpg7gSd2nsk6BN+66T+ZqwHnXw+1wh69drGDtENOm0GUaBPek89+f3/WtDpf4ZtBb1yfWNXADppHqM8oJPmAjTQQO9U3Kl33DTcKVQDuuX+tnbQK9Y5dgCgk2YENNBAO90Aetc5jZ98oJNmBTTQQK8uKeF5fE3PFIwF3fYkTKDvXy/QQAMNNNBAl50/p4A+bW5AAw000EDXg278RCag718z0EADDTTQQAMNNNDZCPzHEGiggQYaaKCBvmmt7+9fgQY6A8AT848ADXQU6N1hAw30S6B3RQ2096FfwrwjbO9DA/3p+p///gnk3VADDfRv87eoV8MGGuhLYAPtemiwXQ+tGKchQAMdvFsD7Tw6Zrd21zfQUbs10EBH7dZAO49eDtuz7ezSUHv6KNC7wm6elSf4B6JunpPPWAmCbUZAC9BOO2AG2i5tdwYaanMBWoBWnqTMIwY01GaxHLRd2u4MNNRm0AQa6u7+xw4BdFL3Y5eAGWjlwrxp36NkmJN6jgcNdVfHo3CYk7qtAd2OuqXXUT7MSX2OIcCc1GMl6AbYrf2NocCc1NsYTg5sXR0A2qB0FAf6zoE1fmRxUi9jeGcOUBdAHz/Q9vXHgV491FWDbVxzDegdBnz1sNPXB/TmQ38Fw+mvH+hi2KflZA/zPKCWGMwJoKGGOQ401P70Hwca6u4LtCJBg917pWE0aKj7LpuNBw12100NNaDB7rjtrA50K+qW2c7PhzuhQY7B3Ag6FXfrDIEOg90+O6DDr+arBw2165OjMAPtxtQ40FCvg66/CzADLUCL7AwaaonCDLXEYQZa4kBDLVGYgZY40FBLFGaoJQ4z1BKHGWiJAw21RGGGWuIwQy1xmKGWOMxgSxxkqCUSM9QShxlsiYMMtkRChloiMcMtcYjBlmk7DB1g6AXWXxwf+g/6kb5xNS0AAAAASUVORK5CYII=">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;1,9..144,300&display=swap" rel="stylesheet">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
