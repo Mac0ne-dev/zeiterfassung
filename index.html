@@ -7,8 +7,54 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Zeiterfassung">
-<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='115' fill='%230f0f0f'/%3E%3Ccircle cx='256' cy='256' r='160' fill='none' stroke='%23c8f060' stroke-width='24'/%3E%3Cline x1='256' y1='256' x2='256' y2='140' stroke='%23c8f060' stroke-width='22' stroke-linecap='round'/%3E%3Cline x1='256' y1='256' x2='322' y2='300' stroke='%23e8e8e0' stroke-width='18' stroke-linecap='round'/%3E%3Ccircle cx='256' cy='256' r='14' fill='%23c8f060'/%3E%3Crect x='220' y='80' width='72' height='28' rx='8' fill='%23c8f060'/%3E%3C/svg%3E">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='115' fill='%230f0f0f'/%3E%3Ccircle cx='256' cy='256' r='160' fill='none' stroke='%23c8f060' stroke-width='24'/%3E%3Cline x1='256' y1='256' x2='256' y2='140' stroke='%23c8f060' stroke-width='22' stroke-linecap='round'/%3E%3Cline x1='256' y1='256' x2='322' y2='300' stroke='%23e8e8e0' stroke-width='18' stroke-linecap='round'/%3E%3Ccircle cx='256' cy='256' r='14' fill='%23c8f060'/%3E%3Crect x='220' y='80' width='72' height='28' rx='8' fill='%23c8f060'/%3E%3C/svg%3E">
+<script>
+  // Generate PNG favicon via Canvas for Safari & browsers that don't support SVG favicons
+  (function() {
+    const c = document.createElement('canvas');
+    c.width = c.height = 512;
+    const ctx = c.getContext('2d');
+    const r = 115;
+    // Background rounded rect
+    ctx.fillStyle = '#0f0f0f';
+    ctx.beginPath();
+    ctx.moveTo(r, 0); ctx.lineTo(512-r, 0);
+    ctx.arcTo(512,0,512,r,r); ctx.lineTo(512,512-r);
+    ctx.arcTo(512,512,512-r,512,r); ctx.lineTo(r,512);
+    ctx.arcTo(0,512,0,512-r,r); ctx.lineTo(0,r);
+    ctx.arcTo(0,0,r,0,r); ctx.closePath();
+    ctx.fill();
+    // Clock circle
+    ctx.strokeStyle = '#c8f060'; ctx.lineWidth = 24;
+    ctx.beginPath(); ctx.arc(256,256,160,0,Math.PI*2); ctx.stroke();
+    // Minute hand (12 o'clock)
+    ctx.strokeStyle = '#c8f060'; ctx.lineWidth = 22;
+    ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(256,256); ctx.lineTo(256,140); ctx.stroke();
+    // Hour hand
+    ctx.strokeStyle = '#e8e8e0'; ctx.lineWidth = 18;
+    ctx.beginPath(); ctx.moveTo(256,256); ctx.lineTo(322,300); ctx.stroke();
+    // Center dot
+    ctx.fillStyle = '#c8f060';
+    ctx.beginPath(); ctx.arc(256,256,14,0,Math.PI*2); ctx.fill();
+    // Top bar (like a clock crown)
+    ctx.fillStyle = '#c8f060';
+    ctx.beginPath();
+    ctx.roundRect(220, 80, 72, 28, 8);
+    ctx.fill();
+    // Set as PNG favicon
+    const link = document.createElement('link');
+    link.rel = 'shortcut icon';
+    link.type = 'image/png';
+    link.href = c.toDataURL('image/png');
+    document.head.appendChild(link);
+    // Also set apple-touch-icon
+    const apple = document.createElement('link');
+    apple.rel = 'apple-touch-icon';
+    apple.href = c.toDataURL('image/png');
+    document.head.appendChild(apple);
+  })();
+</script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;1,9..144,300&display=swap" rel="stylesheet">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -650,19 +696,22 @@
         <label>Kommt-Zeit</label>
         <input type="time" id="kommtA" value="08:30">
       </div>
-      <div class="input-group" style="margin-top:24px;">
-        <span style="color:var(--muted);font-size:0.8rem;">→ Geht-Zeit wird berechnet</span>
-      </div>
-    </div>
-    <div style="margin-top:16px; display:flex; gap:16px; align-items:flex-end; flex-wrap:wrap;">
+      <span class="arrow" style="margin-top:24px;">→</span>
       <div class="input-group">
-        <label>Soll-Arbeitszeit (netto)</label>
-        <input type="time" id="sollzeit" value="07:48">
+        <label>Geht-Zeit (optional)</label>
+        <input type="time" id="gehtA" placeholder="—">
       </div>
-      <div style="font-size:0.7rem;color:var(--muted);margin-bottom:12px;">Standard: 7h 48min</div>
+      <div class="input-group" style="margin-top:24px;">
+        <span style="color:var(--muted);font-size:0.75rem;">leer = Geht wird berechnet</span>
+      </div>
     </div>
-    <button class="max-geht-btn" onclick="fillMaxGehtA()" title="Kommt-Zeit + 10h 45min = späteste erlaubte Geht-Zeit">
-      ⏱ Späteste Geht-Zeit anzeigen &nbsp;<span style="opacity:0.6;font-size:0.7em;">(Kommt + 10h 45min)</span>
+    <div style="margin-top:12px; display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+      <span style="font-size:0.7rem;color:var(--muted);">Soll-Netto:</span>
+      <input type="time" id="sollzeit" value="07:48" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:'DM Mono',monospace;font-size:0.85rem;padding:6px 10px;outline:none;width:110px;">
+      <span style="font-size:0.7rem;color:var(--muted);">Standard: 7h 48min</span>
+    </div>
+    <button class="max-geht-btn" onclick="fillMaxGehtA()">
+      ⏱ Späteste Geht-Zeit anzeigen
     </button>
     <div id="maxGehtDisplayA" class="max-geht-display" style="display:none"></div>
   </div>
@@ -692,8 +741,8 @@
 
     <div class="pairs-list" id="pairsList"></div>
     <button class="add-pair-btn" onclick="addPair()">+ Buchung hinzufügen</button>
-    <button class="max-geht-btn" style="margin-top:12px" onclick="fillMaxGehtB()" title="Erste Kommt-Zeit + 10h 45min = späteste erlaubte Geht-Zeit">
-      ⏱ Späteste Geht-Zeit anzeigen &nbsp;<span style="opacity:0.6;font-size:0.7em;">(erste Kommt + 10h 45min)</span>
+    <button class="max-geht-btn" style="margin-top:12px" onclick="fillMaxGehtB()">
+      ⏱ Späteste Geht-Zeit anzeigen
     </button>
     <div id="maxGehtDisplayB" class="max-geht-display" style="display:none"></div>
   </div>
@@ -985,6 +1034,7 @@
     setToday();
     setMode('A');
     document.getElementById('kommtA').value = '08:30';
+    document.getElementById('gehtA').value = '';
     document.getElementById('sollzeit').value = '07:48';
     document.getElementById('maxGehtDisplayA').style.display = 'none';
     pairs = [];
@@ -1109,35 +1159,53 @@
 
   function calcModeA() {
     const kommt = timeToMin(document.getElementById('kommtA').value);
+    const gehtEingabe = timeToMin(document.getElementById('gehtA').value);
     const soll = timeToMin(document.getElementById('sollzeit').value);
 
     if (kommt === null) { showError('Bitte Kommt-Zeit eingeben.'); return; }
-    if (soll === null) { showError('Bitte Sollarbeitszeit eingeben.'); return; }
 
-    // Iterative: find correct pause based on netto work
-    // We want: netto = soll, so brutto = netto + pause(netto)
-    // But pause depends on netto → simple: just add the correct pause to soll
-    const pause = getPflichtpause(soll);
-    const bruttoMin = soll + pause;
-    const gehtMin = kommt + bruttoMin;
-
-    // Check band limit (20:30 = 1230)
     const bandEnde = 20 * 60 + 30;
-    const maxBrutto = 10 * 60;
-
     const warnings = [];
-    if (gehtMin > bandEnde) warnings.push('⚠ Geht-Zeit überschreitet Bandbreite (20:30 Uhr).');
-    if (bruttoMin > maxBrutto) warnings.push('⚠ Gesamtarbeitszeit überschreitet 10 Stunden.');
 
-    showResult({
-      nettoMin: soll,
-      bruttoMin,
-      pause,
-      kommtStr: minToTime(kommt),
-      gehtStr: minToTime(gehtMin),
-      warnings,
-      mode: 'A'
-    });
+    if (gehtEingabe !== null) {
+      // ── Geht wurde eingegeben → Netto berechnen ──
+      if (gehtEingabe <= kommt) { showError('Geht-Zeit muss nach Kommt-Zeit liegen.'); return; }
+      const bruttoMin = gehtEingabe - kommt;
+      const nettoMin  = bruttoMin - getPflichtpause(bruttoMin);
+
+      if (nettoMin > 10 * 60) warnings.push('⚠ Netto-Arbeitszeit überschreitet 10 Stunden!');
+      if (gehtEingabe > bandEnde) warnings.push('⚠ Geht-Zeit überschreitet Bandbreite (20:30 Uhr).');
+
+      showResult({
+        nettoMin,
+        bruttoMin,
+        pause: getPflichtpause(bruttoMin),
+        kommtStr: minToTime(kommt),
+        gehtStr: minToTime(gehtEingabe),
+        warnings,
+        mode: 'A'
+      });
+
+    } else {
+      // ── Geht leer → Geht-Zeit aus Soll berechnen ──
+      if (soll === null) { showError('Bitte Soll-Netto-Zeit oder eine Geht-Zeit eingeben.'); return; }
+      const pause    = getPflichtpause(soll);
+      const bruttoMin = soll + pause;
+      const gehtMin  = kommt + bruttoMin;
+
+      if (gehtMin > bandEnde) warnings.push('⚠ Geht-Zeit überschreitet Bandbreite (20:30 Uhr).');
+      if (bruttoMin > 10 * 60) warnings.push('⚠ Gesamtarbeitszeit überschreitet 10 Stunden.');
+
+      showResult({
+        nettoMin: soll,
+        bruttoMin,
+        pause,
+        kommtStr: minToTime(kommt),
+        gehtStr: minToTime(gehtMin),
+        warnings,
+        mode: 'A'
+      });
+    }
   }
 
   function calcModeB() {
