@@ -251,10 +251,22 @@
 
   .arrow { color: var(--muted); font-size: 0.8rem; }
 
-  .pair-row input[type="time"].open-end {
-    border-style: dashed;
-    color: var(--muted);
+  .time-input {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 1rem;
+    padding: 9px 12px;
+    outline: none;
+    transition: border-color 0.2s;
+    letter-spacing: 0.05em;
+    width: 100px;
   }
+  .time-input:focus { border-color: var(--accent); }
+  .time-input.open-end { border-style: dashed; color: var(--muted); }
+  .time-input.invalid  { border-color: var(--warn); }
 
   .remove-btn {
     margin-left: auto;
@@ -616,6 +628,13 @@
     cursor: pointer;
     tabindex: -1;
   }
+
+  .band-hint {
+    font-size: 0.7rem;
+    color: var(--accent2);
+    margin-top: 5px;
+    animation: fadeUp 0.2s ease;
+  }
 </style>
 </head>
 <body>
@@ -648,12 +667,12 @@
     <div class="input-row">
       <div class="input-group">
         <label>Kommt-Zeit</label>
-        <input type="time" id="kommtA" value="08:30">
+        <input type="time" id="kommtA" value="08:30" class="time-input" onblur="validateBand(this,'kommt')">
       </div>
       <span class="arrow" style="margin-top:24px;">→</span>
       <div class="input-group">
         <label>Geht-Zeit (optional)</label>
-        <input type="time" id="gehtA" placeholder="—">
+        <input type="time" id="gehtA" class="time-input open-end" onblur="validateBand(this,'geht'); this.classList.toggle('open-end',!this.value)">
       </div>
       <div class="input-group" style="margin-top:24px;">
         <span style="color:var(--muted);font-size:0.75rem;">leer = Geht wird berechnet</span>
@@ -661,7 +680,7 @@
     </div>
     <div style="margin-top:12px; display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
       <span style="font-size:0.7rem;color:var(--muted);">Soll-Netto:</span>
-      <input type="time" id="sollzeit" value="07:48" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:'DM Mono',monospace;font-size:0.85rem;padding:6px 10px;outline:none;width:110px;">
+      <input type="time" id="sollzeit" value="07:48" class="time-input" style="width:110px;font-size:0.85rem;padding:6px 10px;">
       <span style="font-size:0.7rem;color:var(--muted);">Standard: 7h 48min</span>
     </div>
     <button class="max-geht-btn" onclick="fillMaxGehtA()">
@@ -716,7 +735,7 @@
 <!-- Rules -->
 <div class="rules-card">
   <button class="rules-toggle" onclick="toggleRules(this)">
-    Regelwerk (DV Arbeitszeit § 2.3 – 2.5)
+    Regelwerk (DV Arbeitszeit)
     <span id="rulesArrow">▸</span>
   </button>
   <div class="rules-body" id="rulesBody">
@@ -756,28 +775,75 @@
 </div>
 
 <script>
-  // ─── Skip internal time-picker button on Tab ─────────────
-  // The browser renders a hidden clock-icon button inside <input type="time">
-  // that steals Tab focus. We intercept Tab on time inputs and manually
-  // move to the next focusable element.
+  // ─── Tab navigation for time inputs ──────────────────────
+  // type=time has two internal segments: HH (first Tab) and MM (second Tab).
+  // We track how many times Tab was pressed on the same element and only
+  // advance to the next logical field on the SECOND Tab (= minutes segment).
+  let _tabCount = 0;
+  let _tabTarget = null;
+
   document.addEventListener('keydown', function(e) {
-    if (e.key !== 'Tab') return;
-    const active = document.activeElement;
-    if (!active || active.type !== 'time') return;
+    if (e.key !== 'Tab' || e.shiftKey) return;
+    const el = document.activeElement;
+    if (!el || el.type !== 'time') return;
 
-    // Collect all focusable elements excluding the hidden picker spinners
-    const focusable = Array.from(document.querySelectorAll(
-      'input:not([tabindex="-1"]), button:not([tabindex="-1"]), select, textarea, [tabindex]:not([tabindex="-1"])'
-    )).filter(el => !el.disabled && el.offsetParent !== null);
+    // Track consecutive Tabs on the same element
+    if (el === _tabTarget) {
+      _tabCount++;
+    } else {
+      _tabTarget = el;
+      _tabCount = 1;
+    }
 
-    const idx = focusable.indexOf(active);
-    if (idx === -1) return;
+    // Only act on second Tab (minutes segment done)
+    if (_tabCount < 2) return;
 
-    e.preventDefault();
-    const next = e.shiftKey
-      ? focusable[idx - 1]
-      : focusable[idx + 1];
-    if (next) next.focus();
+    // Reset counter
+    _tabCount = 0;
+    _tabTarget = null;
+
+    const id    = el.id;
+    const field = el.dataset.field;
+
+    // Mode A: kommtA → gehtA
+    if (id === 'kommtA') {
+      e.preventDefault();
+      document.getElementById('gehtA').focus();
+      return;
+    }
+
+    // Mode B: kommt → geht in same row
+    if (field === 'kommt') {
+      e.preventDefault();
+      const row = el.closest('.pair-row');
+      const gehtInput = row.querySelector('[data-field="geht"]');
+      if (gehtInput) gehtInput.focus();
+      return;
+    }
+
+    // Mode B: geht → next pair kommt (or add new pair)
+    if (field === 'geht') {
+      e.preventDefault();
+      const pairId = parseInt(el.dataset.pairid, 10);
+      const isLast = pairs[pairs.length - 1].id === pairId;
+      if (isLast) {
+        const newId = Date.now();
+        pairs.push({ id: newId, kommt: '', geht: '' });
+        renderPairs();
+        setTimeout(() => {
+          const rows = document.querySelectorAll('#pairsList .pair-row');
+          const lastRow = rows[rows.length - 1];
+          if (lastRow) lastRow.querySelector('[data-field="kommt"]').focus();
+        }, 30);
+      } else {
+        const allRows = document.querySelectorAll('#pairsList .pair-row');
+        const row = el.closest('.pair-row');
+        const rowIdx = Array.from(allRows).indexOf(row);
+        const nextRow = allRows[rowIdx + 1];
+        if (nextRow) nextRow.querySelector('[data-field="kommt"]').focus();
+      }
+      return;
+    }
   });
 
   // ─── State ───────────────────────────────────────────────
@@ -880,14 +946,28 @@
 
     if (error || !times || times.length === 0) return;
 
-    // Build pairs array
+    // Clamp times to Bandbreite and warn if corrected
+    const clamped = times.map((t, i) => {
+      const type = i % 2 === 0 ? 'kommt' : 'geht';
+      const m = timeToMin(t);
+      if (type === 'kommt' && m < BAND_START) return minToTime(BAND_START);
+      if (m > BAND_ENDE) return minToTime(BAND_ENDE);
+      return t;
+    });
+
+    const anyChanged = clamped.some((t, i) => t !== times[i]);
+    if (anyChanged) {
+      showError('⚠ Eine oder mehrere Zeiten lagen außerhalb der Bandbreite (07:00–20:30) und wurden automatisch korrigiert.');
+    }
+
+    // Build pairs array from clamped times
     pairs = [];
-    for (let i = 0; i < times.length; i += 2) {
+    for (let i = 0; i < clamped.length; i += 2) {
       const id = Date.now() + i;
       pairs.push({
         id,
-        kommt: times[i],
-        geht:  times[i + 1] || ''
+        kommt: clamped[i],
+        geht:  clamped[i + 1] || ''
       });
     }
 
@@ -922,12 +1002,22 @@
         <span class="pair-label">${i + 1}.</span>
         <div class="input-group" style="gap:4px">
           <label style="font-size:0.6rem;color:var(--muted)">Kommt</label>
-          <input type="time" value="${p.kommt}" oninput="updatePair(${p.id},'kommt',this.value)" style="width:120px">
+          <input type="time" value="${p.kommt}"
+            class="time-input pair-time"
+            data-pairid="${p.id}" data-field="kommt"
+            oninput="updatePair(${p.id},'kommt',this.value)"
+            onblur="validateBand(this,'kommt')"
+            style="width:110px">
         </div>
         <span class="arrow">→</span>
         <div class="input-group" style="gap:4px">
           <label style="font-size:0.6rem;color:var(--muted)">Geht</label>
-          <input type="time" value="${p.geht}" oninput="updatePair(${p.id},'geht',this.value)" placeholder="—" style="width:120px" class="${p.geht === '' ? 'open-end' : ''}">
+          <input type="time" value="${p.geht}"
+            class="time-input pair-time ${p.geht === '' ? 'open-end' : ''}"
+            data-pairid="${p.id}" data-field="geht"
+            oninput="updatePair(${p.id},'geht',this.value); this.classList.toggle('open-end',!this.value)"
+            onblur="validateBand(this,'geht')"
+            style="width:110px">
         </div>
         ${pairs.length > 1 ? `<button class="remove-btn" onclick="removePair(${p.id})">✕</button>` : ''}
       `;
@@ -938,7 +1028,6 @@
   function updatePair(id, field, value) {
     const p = pairs.find(x => x.id === id);
     if (p) p[field] = value;
-    // No re-render — avoids focus loss while typing
   }
 
   // ─── Utilities ───────────────────────────────────────────
@@ -970,6 +1059,52 @@
     return 0;
   }
 
+  const BAND_START = 7 * 60;       // 07:00
+  const BAND_ENDE  = 20 * 60 + 30; // 20:30
+
+  // Validates a single time input against the Bandbreite.
+  // type: 'kommt' | 'geht' — determines correction direction.
+  // Shows a temporary warning next to the field and corrects the value.
+  function validateBand(inputEl, type) {
+    const val = timeToMin(inputEl.value);
+    if (val === null) return;
+
+    let corrected = null;
+    let msg = null;
+
+    if (type === 'kommt' && val < BAND_START) {
+      corrected = BAND_START;
+      msg = `Kommt-Zeit vor 07:00 Uhr — automatisch auf ${minToTime(BAND_START)} korrigiert.`;
+    } else if (type === 'geht' && val > BAND_ENDE) {
+      corrected = BAND_ENDE;
+      msg = `Geht-Zeit nach 20:30 Uhr — automatisch auf ${minToTime(BAND_ENDE)} korrigiert.`;
+    } else if (type === 'geht' && val < BAND_START) {
+      corrected = BAND_START;
+      msg = `Geht-Zeit vor 07:00 Uhr — automatisch auf ${minToTime(BAND_START)} korrigiert.`;
+    } else if (type === 'kommt' && val > BAND_ENDE) {
+      corrected = BAND_ENDE;
+      msg = `Kommt-Zeit nach 20:30 Uhr — automatisch auf ${minToTime(BAND_ENDE)} korrigiert.`;
+    }
+
+    if (corrected !== null) {
+      inputEl.value = minToTime(corrected);
+      showBandHint(inputEl, msg);
+    }
+  }
+
+  function showBandHint(inputEl, msg) {
+    // Remove existing hint if any
+    const existing = inputEl.parentNode.querySelector('.band-hint');
+    if (existing) existing.remove();
+
+    const hint = document.createElement('div');
+    hint.className = 'band-hint';
+    hint.textContent = '⚠ ' + msg;
+    inputEl.parentNode.appendChild(hint);
+
+    setTimeout(() => hint.remove(), 4000);
+  }
+
   function showError(msg) {
     const el = document.getElementById('errorMsg');
     el.textContent = msg;
@@ -989,7 +1124,7 @@
     setMode('A');
     document.getElementById('kommtA').value = '08:30';
     document.getElementById('gehtA').value = '';
-    document.getElementById('sollzeit').value = '07:48';
+    document.getElementById('gehtA').classList.add('open-end');    document.getElementById('sollzeit').value = '07:48';
     document.getElementById('maxGehtDisplayA').style.display = 'none';
     pairs = [];
     addPair();
@@ -1090,11 +1225,11 @@
     const rows = document.querySelectorAll('#pairsList .pair-row');
     const sorted = [];
     rows.forEach(row => {
-      const inputs = row.querySelectorAll('input[type="time"]');
-      if (inputs.length < 2) return;
-      const kommt = inputs[0].value ? timeToMin(inputs[0].value) : null;
-      const geht  = inputs[1].value ? timeToMin(inputs[1].value) : null;
-      if (kommt !== null) sorted.push({ kommt, geht });
+      const kommt = row.querySelector('[data-field="kommt"]');
+      const geht  = row.querySelector('[data-field="geht"]');
+      const kommtVal = kommt && kommt.value ? timeToMin(kommt.value) : null;
+      const gehtVal  = geht  && geht.value  ? timeToMin(geht.value)  : null;
+      if (kommtVal !== null) sorted.push({ kommt: kommtVal, geht: gehtVal });
     });
     sorted.sort((a, b) => a.kommt - b.kommt);
     return { sorted };
