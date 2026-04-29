@@ -1169,15 +1169,26 @@
       return;
     }
 
-    // Find the last open-ended pair (no geht) — that's where we calculate max geht
-    // Sum netto from all completed blocks
+    // Sum capped netto from all completed blocks
     let nettoSoFar = 0;
     let lastKommt = null;
+    let pauseZwischen = 0;
     for (const p of sorted) {
       if (p.geht !== null) {
-        nettoSoFar += p.geht - p.kommt;
+        const blockMin = p.geht - p.kommt;
+        if (blockMin > 9 * 60) nettoSoFar += 9 * 60;
+        else if (blockMin > 6 * 60) nettoSoFar += 6 * 60;
+        else nettoSoFar += blockMin;
       } else {
-        lastKommt = p.kommt; // open block
+        lastKommt = p.kommt;
+      }
+    }
+    // Pauses between blocks (display only)
+    for (let i = 1; i < sorted.length; i++) {
+      const prev = sorted[i - 1];
+      const curr = sorted[i];
+      if (prev.geht !== null && curr.kommt > prev.geht) {
+        pauseZwischen += curr.kommt - prev.geht;
       }
     }
 
@@ -1189,7 +1200,11 @@
 
     // Remaining netto budget: 10h max netto
     const maxNetto = 10 * 60;
-    const remaining = maxNetto - nettoSoFar;
+    // Estimate pflichtpause based on current brutto + remaining
+    // Since we don't know final netto yet, use 45min (worst case for >9h)
+    const pflichtpause = getPflichtpause(nettoSoFar + (maxNetto - nettoSoFar));
+    const fehlendePause = Math.max(0, pflichtpause - pauseZwischen);
+    const remaining = maxNetto - nettoSoFar - fehlendePause;
 
     if (remaining <= 0) {
       const el = document.getElementById('maxGehtDisplayB');
@@ -1303,16 +1318,25 @@
 
     const firstKommt = sorted[0].kommt;
 
-    // Sum netto only from completed blocks (both kommt+geht present)
+    // Each block is capped at its pflichtpause threshold:
+    // >6h block → capped at 6h (30-min rule kicks in)
+    // >9h block → capped at 9h (45-min rule kicks in)
     let nettoMin = 0;
     for (const p of sorted) {
       if (p.geht !== null) {
         if (p.geht <= p.kommt) { showError('Geht-Zeit muss nach Kommt-Zeit liegen.'); return; }
-        nettoMin += p.geht - p.kommt;
+        const blockMin = p.geht - p.kommt;
+        if (blockMin > 9 * 60) {
+          nettoMin += 9 * 60; // capped at 9h
+        } else if (blockMin > 6 * 60) {
+          nettoMin += 6 * 60; // capped at 6h
+        } else {
+          nettoMin += blockMin;
+        }
       }
     }
 
-    // Pause = sum of gaps between consecutive blocks (geht → next kommt)
+    // Actual pauses between blocks (for display only)
     let pauseWithin = 0;
     for (let i = 1; i < sorted.length; i++) {
       const prev = sorted[i - 1];
@@ -1325,16 +1349,12 @@
     const lastPairWithGeht = [...sorted].reverse().find(p => p.geht !== null);
     const lastGeht = lastPairWithGeht ? lastPairWithGeht.geht : null;
 
-    // Brutto span only meaningful if all blocks are closed
     const allClosed = sorted.every(p => p.geht !== null);
     const bruttoSpan = allClosed && lastGeht !== null ? (lastGeht - firstKommt) : null;
 
     const pflichtpause = getPflichtpause(nettoMin);
     const warnings = [];
 
-    if (nettoMin > 6 * 60 && pauseWithin < pflichtpause) {
-      warnings.push(`⚠ Pflichtpause nicht erfüllt: ${minToHuman(pflichtpause)} erforderlich, aber nur ${minToHuman(pauseWithin)} gebucht.`);
-    }
     if (nettoMin > 10 * 60) {
       warnings.push('⚠ Netto-Arbeitszeit überschreitet 10 Stunden!');
     }
