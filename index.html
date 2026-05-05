@@ -773,7 +773,7 @@
     </div>
     <div class="rule-item" style="border-top: 1px solid var(--border); margin-top: 4px; padding-top: 12px;">
       <span class="ri-key" style="color:var(--muted)">Version</span>
-      <span class="ri-val" style="color:var(--muted)">v1.21 · Mai 2026</span>
+      <span class="ri-val" style="color:var(--muted)">v1.22 · Mai 2026</span>
     </div>
   </div>
 </div>
@@ -1193,23 +1193,24 @@
       }
     }
 
-    let abzugSoFar = 0;
     const closedBlocks = sorted.filter(p => p.geht !== null);
     const hasOpenBlock = lastKommt !== null;
+    const anzahlGeschlosseneSoFar = closedBlocks.length;
 
-    if (closedBlocks.length === 1 && !hasOpenBlock) {
-      // Echter Einzelblock-Tag (fertig, kein offener Block): Pflicht direkt abziehen
+    let abzugSoFar = 0;
+    if (anzahlGeschlosseneSoFar === 1 && !hasOpenBlock) {
+      // Echter Einzelblock-Tag: Netto-basierte Pflicht
       const pflicht = bruttoSoFar <= 6*60 ? 0 : (bruttoSoFar - 30 <= 9*60 ? 30 : 45);
       abzugSoFar = pflicht;
     } else {
-      // Mehrere Blöcke oder offener Block vorhanden: Block-Abzug + fehlende Gesamtpflicht
+      // Mehrere Blöcke oder offener Block: Brutto-basierte Pflicht
       let blockAbzug = 0;
       for (const p of sorted) {
         if (p.geht === null) continue;
         const exceed = Math.max(0, (p.geht - p.kommt) - 6*60);
         if (exceed > 0) blockAbzug += Math.min(15, exceed);
       }
-      const pflicht = bruttoSoFar <= 6*60 ? 0 : (bruttoSoFar - 30 <= 9*60 ? 30 : 45);
+      const pflicht = bruttoSoFar > 9*60 ? 45 : bruttoSoFar > 6*60 ? 30 : 0;
       const fehlend = Math.max(0, pflicht - blockAbzug - pauseZwischen);
       abzugSoFar = blockAbzug + fehlend;
     }
@@ -1360,21 +1361,23 @@
       }
     }
 
-    // Pflichtpause wird auf Basis der NETTO-Zeit bestimmt (nicht Brutto):
-    // Wenn (brutto - 30min) <= 9h → Pflicht = 30min
-    // Wenn (brutto - 30min) > 9h  → Pflicht = 45min
-    // (Bei <= 6h Brutto: Pflicht = 0)
-    const pflichtpause = bruttoMin <= 6*60 ? 0 : (bruttoMin - 30 <= 9*60 ? 30 : 45);
+    // Pflichtpause:
+    // Einzelblock: basiert auf Netto (brutto-30 ≤ 9h → 30min, sonst 45min)
+    // Mehrere Blöcke: basiert auf Brutto (>9h → 45min, >6h → 30min)
+    const anzahlBlöcke = sorted.filter(p => p.geht !== null).length;
+    let pflichtpause;
+    if (anzahlBlöcke <= 1) {
+      pflichtpause = bruttoMin <= 6*60 ? 0 : (bruttoMin - 30 <= 9*60 ? 30 : 45);
+    } else {
+      pflichtpause = bruttoMin > 9*60 ? 45 : bruttoMin > 6*60 ? 30 : 0;
+    }
 
     let nettoMin;
-    if (sorted.filter(p => p.geht !== null).length === 1) {
-      // Einzelblock: einfach Pflicht abziehen
+    if (anzahlBlöcke <= 1) {
+      // Einzelblock: Pflicht direkt abziehen
       nettoMin = bruttoMin - pflichtpause;
     } else {
-      // Mehrere Blöcke:
-      // Pro Block >6h: Abzug = min(15, Überschreitung über 6h)
-      //   → knapp über 6h (≤6h15m): nur die echten Überschreitungsminuten
-      //   → >6h15m: immer 15min (eine Mindestpauseneinheit)
+      // Mehrere Blöcke: Block-Abzug + fehlende Gesamtpflicht
       let blockAbzug = 0;
       for (const p of sorted) {
         if (p.geht === null) continue;
@@ -1382,7 +1385,6 @@
         const exceed = Math.max(0, bm - 6 * 60);
         if (exceed > 0) blockAbzug += Math.min(15, exceed);
       }
-      // Fehlende Gesamtpflicht: was durch Block-Abzug + echte Pausen noch nicht gedeckt ist
       const bereitsGedeckt = blockAbzug + pauseWithin;
       const fehlend = Math.max(0, pflichtpause - bereitsGedeckt);
       nettoMin = bruttoMin - blockAbzug - fehlend;
